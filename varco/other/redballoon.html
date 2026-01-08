@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>redballoon</title>
+    
+    <!-- FAVICON LINK -->
+    <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/varcoclan/varco-cdn@master/varco/varcoui/savedme.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Theme: Red Background, Black Accents */
+            --bg-red: rgb(210, 10, 5);
+            --accent-black: #000000;
+        }
+
+        body {
+            background-color: var(--bg-red);
+            font-family: 'Righteous', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            cursor: crosshair;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .highlight-box {
+            background-color: var(--accent-black);
+            color: var(--bg-red);
+            display: inline-block;
+            line-height: 1.1;
+            text-transform: lowercase;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 0 10px;
+            cursor: crosshair; 
+            transition: 0.2s;
+            border: none;
+        }
+
+        .title {
+            font-size: 90px;
+            letter-spacing: -4px; 
+            margin-top: 6vh; 
+            margin-bottom: 40px;
+            padding: 0 20px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px; 
+        }
+
+        .btn-l {
+            font-size: 40px;
+        }
+
+        .highlight-box:hover {
+            opacity: 0.85;
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        .footer-text {
+            margin-top: auto;
+            padding-bottom: 20px;
+            color: #000000;
+            font-size: 14px;
+            text-transform: lowercase;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-wrapper">
+        <!-- Title opens Archive.org -->
+        <a href="https://archive.org/details/varco" target="_blank" class="title highlight-box">redballoon</a>
+
+        <div class="menu-container">
+            <!-- Varco Sector Button (Fetches source from CDN) -->
+            <div class="btn-l highlight-box" onclick="openCloaked()">varco sector</div>
+            
+            <a href="https://sites.google.com/view/varco" target="_blank" class="btn-l highlight-box">
+                old website
+            </a>
+
+            <!-- Repository Button (Links to GitHub) -->
+            <a class="btn-l highlight-box" href="https://github.com/varcoclan/varco-cdn" target="_blank">
+                repository
+            </a>
+
+            <a class="btn-l highlight-box" href="https://www.tiktok.com/@varco.dev" target="_blank">
+                my tiktok
+            </a>
+
+            <!-- Varco AI Button (Fetches source from CDN) -->
+            <div class="btn-l highlight-box" onclick="openAiCloaked()">varco ai</div>
+        </div>
+
+        <div class="footer-text">
+            redballoon launcher by kvdvarco
+        </div>
+    </div>
+
+    <script>
+        // FUNCTION FOR VARCO SECTOR
+        async function openCloaked() {
+            const sectorUrl = "https://cdn.jsdelivr.net/gh/varcoclan/varco-cdn@master/varco/varcoui/varcosector.html";
+            const win = window.open('about:blank', '_blank');
+            if (!win) {
+                alert("Please allow popups for this site.");
+                return;
+            }
+            win.document.write('<html><body style="background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">Loading Varco Sector...</body></html>');
+            try {
+                const response = await fetch(sectorUrl);
+                if (!response.ok) throw new Error("Failed to fetch");
+                const htmlSource = await response.text();
+                win.document.open();
+                win.document.write(htmlSource);
+                win.document.close();
+            } catch (error) {
+                win.document.body.innerHTML = "Error loading Varco Sector source.";
+            }
+        }
+
+        // FUNCTION FOR VARCO AI
+        async function openAiCloaked() {
+            const aiCdnUrl = "https://cdn.jsdelivr.net/gh/varcoclan/varco-cdn@master/varco/varcoui/varcosector-ai.html";
+            const win = window.open('about:blank', '_blank');
+            if (!win) {
+                alert("Please allow popups.");
+                return;
+            }
+            win.document.write('<html><body style="background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">Loading Varco AI...</body></html>');
+            try {
+                const response = await fetch(aiCdnUrl);
+                if (!response.ok) throw new Error("Failed to fetch");
+                const htmlSource = await response.text();
+                win.document.open();
+                win.document.write(htmlSource);
+                win.document.close();
+            } catch (error) {
+                win.document.body.innerHTML = "Error loading Varco AI source.";
+            }
+        }
+    </script>
+</body>
+</html>
