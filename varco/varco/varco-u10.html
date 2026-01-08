@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>New Tab</title>
+<style>
+html, body {
+margin: 0;
+padding: 0;
+height: 100%;
+overflow: hidden;
+font-family: sans-serif;
+}
+iframe {
+width: 100%;
+height: 100%;
+border: none;
+display: block;
+}
+#modal {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0, 0, 0, 0.6);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 10;
+display: none;
+}
+#modalContent {
+background: white;
+padding: 20px;
+border-radius: 12px;
+max-width: 300px;
+text-align: center;
+box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+#modalContent button {
+margin: 10px;
+padding: 8px 14px;
+border: none;
+border-radius: 6px;
+cursor: pointer;
+}
+#okBtn { background-color: #007bff; color: white; }
+#cancelBtn { background-color: #ccc; }
+</style>
+</head>
+<body>
+<iframe id="mainFrame"></iframe>
+
+<div id="modal">
+<div id="modalContent">
+<p>This site may not work in an iframe.<br/>Would you like to choose another?</p>
+<button id="okBtn">Choose Another</button>
+<button id="cancelBtn">Dismiss if Link Works</button>
+</div>
+</div>
+
+<script>
+const urlMap = {
+2: "https://vapor.my/",
+3: "https://eaglercraft.com",
+4: "https://pixelforces.io",
+5: "https://anura.pro",
+6: "https://easyfun.gg",
+7: "https://work.excel.albacetediario.com/",
+8: "https://1games.io",
+9: "https://4get.ch"
+};
+
+const modal = document.getElementById('modal');
+const okBtn = document.getElementById('okBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const iframe = document.getElementById('mainFrame');
+
+let isCustomCheck = false;
+
+function showModal() {
+modal.style.display = 'flex';
+}
+
+function hideModal() {
+modal.style.display = 'none';
+}
+
+function promptForURL() {
+while (true) {
+const input = prompt("Enter a number 1-9 or enter an embeddable link.");
+if (input === null) return null;
+
+const trimmed = input.trim();
+if (trimmed === "") {
+console.warn("Invalid input, try again");
+continue;
+}
+
+const parsed = parseInt(trimmed);
+if (!isNaN(parsed)) {
+if (parsed === 1) {
+alert(`TUTORIAL - Proxy Navigation Guide:
+
+1: (this help screen)
+2: Vapor proxy
+3: Minecraft
+4: Weslack
+5: AnuraOS
+6: EasyFun
+7: Utopia (buggy)
+8: 1games
+9: 4get search
+
+Other Input:
+Type any embeddable domain name like "slowroads.io" or "google.com"`);
+continue;
+}
+if (parsed >= 2 && parsed <= 9) {
+isCustomCheck = false;
+return urlMap[parsed];
+}
+}
+
+// Try to match custom domain
+if (/^[a-zA-Z0-9.-]+\.[a-z]{2,}$/.test(trimmed)) {
+isCustomCheck = true;
+const domain = trimmed.replace(/^https?:\/\//, '');
+return "https://" + domain;
+}
+
+console.warn("Invalid input, try again");
+}
+}
+
+function loadURLInIframe(url) {
+iframe.src = url;
+
+if (isCustomCheck) {
+setTimeout(() => {
+try {
+const test = iframe.contentWindow.location.href;
+} catch (e) {
+showModal();
+}
+}, 2000);
+}
+
+iframe.onload = () => {
+try {
+const iframeWin = iframe.contentWindow;
+iframeWin.open = function (url) {
+iframe.src = url;
+return iframeWin;
+};
+
+setInterval(() => {
+try {
+const currentURL = iframeWin.location.href;
+if (iframe.src !== currentURL) {
+iframe.src = currentURL;
+}
+} catch (e) {}
+}, 1000);
+} catch (e) {
+console.warn("Iframe content blocked. Cannot override window.open.");
+}
+};
+}
+
+okBtn.onclick = () => {
+hideModal();
+const retryURL = promptForURL();
+if (retryURL) loadURLInIframe(retryURL);
+else window.close();
+};
+
+cancelBtn.onclick = () => {
+hideModal();
+};
+
+const initialURL = promptForURL();
+if (initialURL) loadURLInIframe(initialURL);
+else {
+alert("Invalid input. Closing.");
+window.close();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Tab</title>
+<style>
+body {
+margin: 0;
+font-family: sans-serif;
+background: #121212;
+color: #f0f0f0;
+display: flex;
+flex-direction: column;
+height: 100vh;
+}
+#menu {
+padding: 1rem;
+overflow-y: auto;
+flex: 1;
+display: flex;
+flex-direction: column;
+gap: 1rem;
+}
+.category {
+margin-bottom: 1rem;
+}
+.category h3 {
+margin: 0 0 0.5rem 0;
+color: #fff;
+}
+.btn {
+padding: 0.75rem;
+font-size: 1rem;
+background: #1f1f1f;
+border: 1px solid #333;
+border-radius: 0.75rem;
+cursor: pointer;
+text-align: center;
+color: #f0f0f0;
+}
+.btn:hover {
+background: #333;
+}
+#inputBar {
+display: flex;
+padding: 1rem;
+background: #1f1f1f;
+gap: 0.5rem;
+}
+#customUrl {
+flex: 1;
+padding: 0.75rem;
+font-size: 1rem;
+border: 1px solid #444;
+border-radius: 0.5rem;
+background: #121212;
+color: #f0f0f0;
+}
+iframe {
+flex: 1;
+border: none;
+width: 100%;
+display: none;
+}
+#modal {
+position: fixed;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.6);
+display: none;
+align-items: center;
+justify-content: center;
+z-index: 100;
+}
+#modalContent {
+background: #1f1f1f;
+color: #fff;
+padding: 20px;
+border-radius: 12px;
+max-width: 300px;
+text-align: center;
+box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+#modalContent button {
+margin: 10px;
+padding: 8px 14px;
+border: none;
+border-radius: 6px;
+cursor: pointer;
+}
+#okBtn { background-color: #007bff; color: white; }
+#cancelBtn { background-color: #666; color: white; }
+</style>
+</head>
+<body>
+<div id="inputBar">
+<input id="customUrl" type="text" placeholder="enter an embeddable site like 'example.com'" />
+<button class="btn" onclick="handleInput()">Go</button>
+</div>
+
+<div id="menu"></div>
+<iframe id="mainFrame"></iframe>
+
+<div id="modal">
+<div id="modalContent">
+<p>This site may not work in an iframe.<br>Choose another?</p>
+<button id="okBtn">Choose Another</button>
+<button id="cancelBtn">Dismiss</button>
+</div>
+</div>
+
+<script>
+const urlMap = {
+1: { name: "1games", url: "https://1games.io", cat: "games" },
+2: { name: "minecraft", url: "https://eaglercraft.com", cat: "games" },
+3: { name: "pixelforces", url: "https://pixelforces.io", cat: "games" },
+4: { name: "easyfun", url: "https://easyfun.gg", cat: "games" },
+5: { name: "slow roads", url: "https://slowroads.io", cat: "games" },
+6: { name: "gpt-4o mini", url: "https://studio.pickaxe.co/_embed/M0BVDLQGGK?d=deployment-3f3fa996-0825-4b92-b7fb-6a70fc2f0e3d", cat: "artificial intelligence" },
+7: { name: "gemini 2.0", url: "https://studio.pickaxe.co/_embed/GSAZWMMCRGV?d=deployment-411f1505-104b-46f8-bb0d-56cfc1531d4c", cat: "artificial intelligence" },
+8: { name: "deepseek-v3", url: "https://studio.pickaxe.co/_embed/6LZKS20J3CR?d=deployment-399cffc7-6423-4b2d-bd63-0b8ecc159a79", cat: "artificial intelligence" },
+9: { name: "win11 react", url: "https://win11.blueedge.me", cat: "web oses" },
+10: { name: "anuraos", url: "https://anura.pro/", cat: "web oses" },
+11: { name: "space proxy", url: "https://lunchtv.sltech.cl/", cat: "proxies" },
+12: { name: "shadow proxy", url: "https://phantom.lol", cat: "proxies" },
+13: { name: "szvy proxy", url: "https://ixl.wiki", cat: "proxies" },
+14: { name: "radius proxy", url: "https://radiusproxy.app", cat: "proxies" },
+15: { name: "vapor proxy", url: "https://vapor.my", cat: "proxies" }
+};
+
+const iframe = document.getElementById('mainFrame');
+const modal = document.getElementById('modal');
+const menu = document.getElementById('menu');
+const inputBar = document.getElementById('inputBar');
+const okBtn = document.getElementById('okBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+
+const categories = ["games", "artificial intelligence", "web oses", "proxies"];
+
+function showModal() {
+modal.style.display = 'flex';
+}
+function hideModal() {
+modal.style.display = 'none';
+}
+
+function loadURL(url, isCustom = false) {
+iframe.style.display = 'block';
+menu.style.display = 'none';
+inputBar.style.display = 'none';
+iframe.src = url;
+
+if (isCustom) {
+setTimeout(() => {
+try {
+const test = iframe.contentWindow.location.href;
+} catch (e) {
+showModal();
+}
+}, 2000);
+}
+
+iframe.onload = () => {
+try {
+const iframeWin = iframe.contentWindow;
+iframeWin.open = function (url) {
+iframe.src = url;
+return iframeWin;
+};
+} catch (e) {}
+};
+}
+
+function handleInput() {
+const input = document.getElementById('customUrl').value.trim();
+const num = parseInt(input);
+if (urlMap[num]) return loadURL(urlMap[num].url);
+if (/^[a-zA-Z0-9.-]+\.[a-z]{2,}$/.test(input)) return loadURL("https://" + input, true);
+alert("Invalid input. Try again.");
+}
+
+okBtn.onclick = () => {
+hideModal();
+document.getElementById('customUrl').value = "";
+};
+cancelBtn.onclick = hideModal;
+
+function renderMenu() {
+let html = "";
+categories.forEach(cat => {
+html += `<div class='category'><h3>${cat}</h3>`;
+Object.entries(urlMap).forEach(([key, val]) => {
+if (val.cat === cat) {
+html += `<div class='btn' onclick='loadURL("${val.url}")'>${val.name.toLowerCase()}</div>`;
+}
+});
+html += `</div>`;
+});
+menu.innerHTML = html;
+}
+
+renderMenu();
+</script>
+</body>
+</html>

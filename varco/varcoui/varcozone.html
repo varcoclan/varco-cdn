@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>varco zone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+--bg-color: #121212;
+--surface-color: #1e1e1e;
+--primary-color: #3a72ff;
+--text-color: #e0e0e0;
+--text-muted-color: #888;
+--border-color: #333;
+}
+
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+
+body {
+font-family: 'Inter', sans-serif;
+background: var(--bg-color);
+color: var(--text-color);
+height: 100vh;
+overflow: hidden;
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+#app-container {
+width: 100%;
+height: 100%;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 2rem;
+gap: 1.5rem;
+transition: opacity 0.4s ease-in-out, visibility 0.4s;
+}
+
+body.iframe-active #app-container {
+opacity: 0;
+visibility: hidden;
+pointer-events: none;
+}
+
+/* --- Header & Input --- */
+.header {
+text-align: center;
+width: 100%;
+max-width: 900px;
+}
+
+.header h1 {
+font-size: 2.5rem;
+font-weight: 600;
+margin-bottom: 1rem;
+}
+
+#input-container {
+position: relative;
+width: 100%;
+}
+
+#customUrl {
+width: 100%;
+height: 50px;
+padding: 0 20px;
+font-size: 1rem;
+font-family: 'Inter', sans-serif;
+border: 1px solid var(--border-color);
+border-radius: 50px; /* Increased border-radius */
+background: var(--surface-color);
+color: var(--text-color);
+outline: none;
+transition: border-color 0.2s ease-in-out;
+}
+
+#customUrl::placeholder {
+color: var(--text-muted-color);
+}
+
+#customUrl:focus {
+border-color: var(--primary-color);
+}
+
+/* --- Menu Grid --- */
+#menu-wrapper {
+width: 100%;
+max-width: 900px;
+flex: 1;
+overflow-y: auto;
+padding: 1rem;
+}
+
+.grid {
+display: grid;
+gap: 1rem;
+/* Default for small screens (e.g., mobile) */
+grid-template-columns: repeat(2, 1fr);
+}
+
+/* Medium screens (e.g., tablets) */
+@media (min-width: 640px) {
+.grid {
+grid-template-columns: repeat(3, 1fr);
+}
+}
+
+/* Large screens (e.g., desktops) */
+@media (min-width: 900px) {
+.grid {
+/* Using auto-fill for larger screens to add more columns if space is available */
+grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+}
+
+
+.card-btn {
+padding: 1.25rem 1rem;
+background: var(--surface-color);
+border: 1px solid var(--border-color);
+border-radius: 50px; /* Increased border-radius */
+cursor: pointer;
+color: var(--text-color);
+font-size: 1rem;
+font-weight: 500;
+text-align: center;
+/* Updated transition for the new glow effect */
+transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-btn:hover {
+/* Changed border color and glow color to white */
+border-color: #ffffff;
+box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); /* White glow */
+}
+
+/* --- Iframe View --- */
+#iframe-container {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+opacity: 0;
+visibility: hidden;
+pointer-events: none;
+transition: opacity 0.4s ease-in-out, visibility 0.4s;
+z-index: 100;
+}
+body.iframe-active #iframe-container {
+opacity: 1;
+visibility: visible;
+pointer-events: all;
+}
+
+#iframe {
+width: 100%;
+height: 100%;
+border: none;
+/* Changed background from #000 (black) to #ffffff (white) for compatibility */
+background: #ffffff;
+}
+
+#backBtn {
+position: absolute;
+top: 0.5rem; /* Closer to the top corner */
+left: 0.5rem; /* Closer to the left corner */
+background: rgba(30, 30, 30, 0.7);
+backdrop-filter: blur(8px);
+border: 1px solid var(--border-color);
+color: var(--text-color);
+width: 30px; /* 75% of 40px */
+height: 30px; /* 75% of 40px */
+border-radius: 50%;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.125rem; /* 75% of 1.5rem */
+z-index: 110;
+transition: all 0.2s ease;
+}
+#backBtn:hover {
+background: rgba(30, 30, 30, 0.9); /* Slightly more opaque on hover */
+border-color: #ffffff; /* White border for glow */
+box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); /* White glow */
+}
+
+/* --- Modal --- */
+#modal {
+position: fixed;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.7);
+backdrop-filter: blur(5px);
+display: none;
+align-items: center;
+justify-content: center;
+z-index: 200;
+}
+
+#modalContent {
+background: var(--surface-color);
+padding: 2rem;
+border-radius: 24px; /* Increased border-radius */
+width: 90%;
+max-width: 350px;
+text-align: center;
+border: 1px solid var(--border-color);
+}
+
+#modalContent p { margin-bottom: 1.5rem; font-size: 1.1rem; line-height: 1.5; }
+#modalContent .modal-buttons { display: flex; gap: 1rem; justify-content: center; }
+
+#modalContent button {
+padding: 0.75rem 1.5rem;
+border: 1px solid var(--border-color);
+border-radius: 50px; /* Increased border-radius */
+cursor: pointer;
+font-size: 1rem;
+font-family: 'Inter', sans-serif;
+font-weight: 500;
+background: var(--border-color);
+color: var(--text-color);
+transition: all 0.2s ease;
+}
+
+#okBtn { background-color: var(--primary-color); border-color: var(--primary-color); }
+#cancelBtn:hover { background-color: #444; }
+
+/* Scrollbar */
+#menu-wrapper::-webkit-scrollbar { width: 8px; }
+#menu-wrapper::-webkit-scrollbar-track { background: transparent; }
+#menu-wrapper::-webkit-scrollbar-thumb { background: #444; border-radius: 8px; /* Increased border-radius */ }
+#menu-wrapper::-webkit-scrollbar-thumb:hover { background: #555; }
+</style>
+</head>
+<body>
+
+<div id="app-container">
+<div class="header">
+<h1>varco zone</h1>
+<div id="input-container">
+<input id="customUrl" type="text" placeholder="enter url or search and press enter" />
+</div>
+</div>
+<div id="menu-wrapper"></div>
+</div>
+
+<div id="iframe-container">
+<button id="backBtn" title="Back to Gateway">&times;</button>
+<iframe id="iframe"></iframe>e
+</div>
+
+<div id="modal">
+<div id="modalContent">
+<p>this site may not work when embedded. would you like to go back?</p>
+<div class="modal-buttons">
+<button id="okBtn">go back</button>
+<button id="cancelBtn">dismiss</button>
+</div>
+</div>
+</div>
+
+<script>
+const sitesByCategory = {
+"games": [
+{ name: "1games", url: "https://1games.io" },
+{ name: "minecraft", url: "https://eaglercraft.com" },
+{ name: "easyfun", url: "https://easyfun.gg" },
+{ name: "slow roads", url: "https://slowroads.io" },
+{ name: "cloudmoon", url: "https://web.cloudmoonapp.com" },
+// Added new games
+{ name: "overtide", url: "https://overtide.io" },
+{ name: "bloxd", url: "https://bloxd.io" }
+],
+"ai": [
+{ name: "varco ai", url: "https://varcoaichat.pages.dev" }
+],
+"web oses": [
+{ name: "xenos", url: "https://xen-os.dev" },
+{ name: "anuraos", url: "https://anura.pro/" }
+],
+"proxies": [
+{ name: "space proxy", url: "https://gointospace.app/" },
+{ name: "fern proxy", url: "https://fern.best" },
+{ name: "shadow proxy", url: "https://phantom.lol/" },
+{ name: "vapor proxy", url: "https://vapor.my" },
+{ name: "4get search", url: "https://4get.ch"},
+{ name: "rammerhead", url: "https://rh1.ext.rocks" }
+]
+};
+
+const iframe = document.getElementById('iframe');
+const modal = document.getElementById('modal');
+const menuWrapper = document.getElementById('menu-wrapper');
+const okBtn = document.getElementById('okBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const backBtn = document.getElementById('backBtn');
+const customUrlInput = document.getElementById('customUrl');
+
+function showMenu() {
+document.body.classList.remove('iframe-active');
+iframe.src = 'about:blank';
+}
+
+function showIframe() {
+document.body.classList.add('iframe-active');
+}
+
+function showModal() {
+modal.style.display = 'flex';
+}
+function hideModal() {
+modal.style.display = 'none';
+}
+
+function loadURL(url, isCustom = false) {
+showIframe();
+iframe.src = url;
+
+if (isCustom) {
+setTimeout(() => {
+try {
+// This will throw a cross-origin error if the site blocks framing
+const test = iframe.contentWindow.location.href;
+} catch (e) {
+// showModal();
+}
+}, 2500);
+}
+}
+
+function handleInput() {
+const input = customUrlInput.value.trim();
+if (!input) return;
+
+if (/^[a-zA-Z0-9.-]+\.[a-z]{2,}/.test(input) || input.startsWith('http')) {
+let url = input.startsWith('http') ? input : "https://" + input;
+loadURL(url, true);
+} else {
+// If not a URL, treat it as a search query
+const searchUrl = `https://4get.ch/web?s=${encodeURIComponent(input)}`;
+loadURL(searchUrl, true);
+}
+
+// Clear the input after search or URL load
+customUrlInput.value = '';
+// Also reset any error styling
+customUrlUrlInput.style.borderColor = '';
+}
+
+customUrlInput.addEventListener('keydown', (e) => {
+if (e.key === 'Enter') {
+handleInput();
+}
+});
+
+function renderMenu() {
+// This function now creates a single grid without category titles
+let html = `<div class="grid">`;
+for (const category in sitesByCategory) {
+sitesByCategory[category].forEach(site => {
+html += `<div class='card-btn' onclick='loadURL("${site.url}")'>${site.name}</div>`;
+});
+}
+html += `</div>`;
+menuWrapper.innerHTML = html;
+}
+
+// Event Listeners
+backBtn.onclick = showMenu;
+okBtn.onclick = () => {
+hideModal();
+showMenu();
+};
+cancelBtn.onclick = hideModal;
+
+// Initial call
+renderMenu();
+
+</script>
+</body>
+</html>

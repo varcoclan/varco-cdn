@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>New Tab</title>
+<style>
+html, body {
+margin: 0;
+padding: 0;
+height: 100%;
+overflow: hidden;
+font-family: sans-serif;
+}
+iframe {
+width: 100%;
+height: 100%;
+border: none;
+display: block;
+}
+#modal {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0, 0, 0, 0.6);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 10;
+display: none;
+}
+#modalContent {
+background: white;
+padding: 20px;
+border-radius: 12px;
+max-width: 300px;
+text-align: center;
+box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+#modalContent button {
+margin: 10px;
+padding: 8px 14px;
+border: none;
+border-radius: 6px;
+cursor: pointer;
+}
+#okBtn { background-color: #007bff; color: white; }
+#cancelBtn { background-color: #ccc; }
+</style>
+</head>
+<body>
+<iframe id="mainFrame"></iframe>
+
+<div id="modal">
+<div id="modalContent">
+<p>This site may not work in an iframe.<br/>Would you like to choose another?</p>
+<button id="okBtn">Choose Another</button>
+<button id="cancelBtn">Dismiss if Link Works</button>
+</div>
+</div>
+
+<script>
+const urlMap = {
+2: "https://1games.io",
+3: "https://eaglercraft.com",
+4: "https://pixelforces.io",
+5: "https://easyfun.gg",
+6: "https://slowroads.io",
+7: "https://studio.pickaxe.co/_embed/M0BVDLQGGK?d=deployment-3f3fa996-0825-4b92-b7fb-6a70fc2f0e3d",
+8: "https://studio.pickaxe.co/_embed/GSAZWMMCRGV?d=deployment-411f1505-104b-46f8-bb0d-56cfc1531d4c",
+9: "https://studio.pickaxe.co/_embed/6LZKS20J3CR?d=deployment-399cffc7-6423-4b2d-bd63-0b8ecc159a79",
+10: "https://win11.blueedge.me",
+11: "https://anura.pro/",
+12: "https://lunchtv.sltech.cl/",
+13: "https://phantom.lol",
+14: "https://ixl.wiki",
+15: "https://radiusproxy.app",
+16: "https://vapor.my"
+};
+
+const modal = document.getElementById('modal');
+const okBtn = document.getElementById('okBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const iframe = document.getElementById('mainFrame');
+
+let isCustomCheck = false;
+
+function showModal() {
+modal.style.display = 'flex';
+}
+
+function hideModal() {
+modal.style.display = 'none';
+}
+
+function promptForURL() {
+while (true) {
+const input = prompt("Enter a number 1-15 or enter an embeddable link.");
+if (input === null) return null;
+
+const trimmed = input.trim();
+if (trimmed === "") {
+console.warn("Invalid input, try again");
+continue;
+}
+
+const parsed = parseInt(trimmed);
+if (!isNaN(parsed)) {
+if (parsed === 1) {
+alert(`varco proxy tutorial
+
+
+2-6 = games
+7-9 = ai
+10-11 = web os
+12-16 = proxies
+
+1: (this help screen)
+2: 1games
+3: minecraft
+4: pixelforces
+5: easyfun
+6: slow roads
+7: gpt 4o-mini
+8: gemini 2.0 flash
+9: deepseek-v3
+10: win11 react
+11: anuraos
+12: space proxy
+13: shadow proxy
+14: szvy proxy
+15: radius proxy
+16: vapor proxy
+
+Other Input:
+Type any embeddable domain name like "slowroads.io" or "google.com"`);
+continue;
+}
+if (parsed >= 2 && parsed <= 15) {
+isCustomCheck = false;
+return urlMap[parsed];
+}
+}
+
+// Try to match custom domain
+if (/^[a-zA-Z0-9.-]+\.[a-z]{2,}$/.test(trimmed)) {
+isCustomCheck = true;
+const domain = trimmed.replace(/^https?:\/\//, '');
+return "https://" + domain;
+}
+
+console.warn("Invalid input, try again");
+}
+}
+
+function loadURLInIframe(url) {
+iframe.src = url;
+
+if (isCustomCheck) {
+setTimeout(() => {
+try {
+const test = iframe.contentWindow.location.href;
+} catch (e) {
+showModal();
+}
+}, 2000);
+}
+
+iframe.onload = () => {
+try {
+const iframeWin = iframe.contentWindow;
+iframeWin.open = function (url) {
+iframe.src = url;
+return iframeWin;
+};
+
+setInterval(() => {
+try {
+const currentURL = iframeWin.location.href;
+if (iframe.src !== currentURL) {
+iframe.src = currentURL;
+}
+} catch (e) {}
+}, 1000);
+} catch (e) {
+console.warn("Iframe content blocked. Cannot override window.open.");
+}
+};
+}
+
+okBtn.onclick = () => {
+hideModal();
+const retryURL = promptForURL();
+if (retryURL) loadURLInIframe(retryURL);
+else window.close();
+};
+
+cancelBtn.onclick = () => {
+hideModal();
+};
+
+const initialURL = promptForURL();
+if (initialURL) loadURLInIframe(initialURL);
+else {
+alert("Invalid input. Closing.");
+window.close();
+}
+</script>
+</body>
+</html>

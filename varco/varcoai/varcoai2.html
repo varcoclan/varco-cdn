@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>varco chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f0f0f; color: #e0e0e0; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #121212; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        
+        /* --- Animations --- */
+        @keyframes slideIn {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .msg-enter { animation: slideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+        .btn-anim { transition: transform 0.1s ease, background-color 0.2s; }
+        .btn-anim:active { transform: scale(0.92); }
+
+        .user-msg-bubble { 
+            background-color: #262626; border: none; border-radius: 1.25rem; 
+            padding: 0.75rem 1.25rem; word-wrap: break-word; outline: none; 
+            transition: background 0.2s; 
+        }
+        
+        .bot-msg-area { 
+            width: 100%; padding: 0.75rem 0; line-height: 1.6; outline: none; 
+            transition: background 0.2s; border-radius: 0.5rem; min-height: 20px; 
+        }
+
+        [data-is-message="true"][contenteditable="true"] { cursor: text; }
+        [data-is-message="true"][contenteditable="true"]:hover { background: rgba(255,255,255,0.05); }
+
+        /* Code Blocks - Borderless */
+        .prose pre { 
+            background-color: #1a1a1a !important; padding: 1rem; border-radius: 0.75rem; 
+            margin: 0.75rem 0; border: none; overflow-x: auto; position: relative; 
+        }
+        .hljs { background: #1a1a1a !important; color: #e0e0e0 !important; }
+        .prose :not(pre) > code { 
+            color: #f0f0f0; font-family: 'Courier New', monospace; font-size: 0.9em; 
+            background-color: #1a1a1a; padding: 0.1rem 0.3rem; border-radius: 0.25rem;
+            border: none;
+        }
+
+        /* Input Area - Borderless */
+        .prompt-container { 
+            background-color: #1a1a1a; border-radius: 1.5rem; padding: 0.75rem; 
+            border: none; 
+        }
+        .input-pill { 
+            background-color: #262626; border-radius: 1.25rem; padding: 0.6rem 1rem; 
+            border: 2px solid transparent; outline: none; 
+            transition: background-color 0.2s;
+        }
+        .input-pill:focus-within { background-color: #2a2a2a; border-color: transparent; }
+        .input-pill.drag-over { background-color: #2a2a2a; transform: scale(1.01); }
+
+        #user-input:empty::before { content: "ask gemma hosted by varco"; color: #666; transition: color 0.2s; }
+        .input-pill:focus-within #user-input:empty::before { color: #888; }
+        #user-input { outline: none; word-wrap: break-word; white-space: pre-wrap; min-height: 24px; max-height: 250px; overflow-y: auto; font-size: 15px; }
+
+        /* Dropdowns - Borderless */
+        .dropdown-menu { 
+            opacity: 0; visibility: hidden; pointer-events: none;
+            position: absolute; bottom: 120%; right: 0; width: 260px;
+            background: #1a1a1a; border: none; border-radius: 0.75rem; z-index: 50; 
+            overflow: hidden; 
+            transform: scale(0.95) translateY(10px);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .dropdown-menu.show { 
+            opacity: 1; visibility: visible; pointer-events: auto;
+            transform: scale(1) translateY(0);
+        }
+
+        #chat-slots-container { max-height: 250px; overflow-y: auto; }
+
+        .chat-opt { 
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 0.6rem 1rem; cursor: pointer; font-size: 0.875rem; 
+            gap: 10px; transition: background 0.1s; 
+        }
+        .chat-opt:hover { background: rgba(255,255,255,0.04); }
+        .chat-opt.active { border-left: 3px solid #fff; background: rgba(255,255,255,0.02); }
+
+        .chat-title-editable { flex-grow: 1; outline: none; padding: 4px 6px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text; border: 1px solid transparent; transition: all 0.2s; }
+        .chat-title-editable:focus { background: #262626; overflow: visible; white-space: normal; color: #fff; }
+
+        .delete-chat-circle { width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; opacity: 0; transition: all 0.2s; flex-shrink: 0; transform: scale(0.8); }
+        .chat-opt:hover .delete-chat-circle { opacity: 1; transform: scale(1); }
+        .delete-chat-circle:hover { background: #ff5555; transform: scale(1.1); }
+
+        .delete-msg-btn { opacity: 0; transition: opacity 0.2s; color: #666; cursor: pointer; margin-top: 4px; }
+        .msg-wrap:hover .delete-msg-btn { opacity: 1; }
+        .delete-msg-btn:hover { color: #ef4444; }
+
+        .file-card { background: #1a1a1a; border: none; border-radius: 0.75rem; padding: 0.6rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 80px; text-align: center; margin-bottom: 4px; animation: scaleIn 0.2s ease-out; }
+        .file-card-ext { font-size: 10px; font-weight: 800; color: #888; text-transform: uppercase; }
+        .file-card-name { font-size: 9px; font-weight: 400; color: #555; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        #html-runner { 
+            position: fixed; inset: 0; z-index: 100; 
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        #html-runner.active { opacity: 1; visibility: visible; pointer-events: auto; }
+        
+        #sandbox-frame { 
+            width: 100%; height: 100%; border: none; 
+            transform: scale(0.96); opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+        }
+        #html-runner.active #sandbox-frame { transform: scale(1); opacity: 1; }
+
+        .close-viewer-btn { 
+            position: absolute; top: 1.5rem; right: 1.5rem; width: 40px; height: 40px; 
+            background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; z-index: 110; transition: background 0.2s, transform 0.2s;
+        }
+        .close-viewer-btn:hover { background: rgba(0,0,0,0.2); }
+        .close-viewer-btn:active { transform: scale(0.9); }
+
+        .code-actions { position: absolute; top: 0.5rem; right: 0.5rem; display: flex; gap: 0.5rem; }
+        .action-btn { 
+            background: #333; color: #fff; font-size: 10px; padding: 4px 8px; 
+            border-radius: 4px; cursor: pointer; border: none; 
+            transition: transform 0.1s, background 0.2s;
+        }
+        .action-btn:active { transform: scale(0.9); }
+        .action-btn:hover { background: #444; }
+
+        .preview-item { 
+            position: relative; width: 40px; height: 40px; border-radius: 8px; 
+            border: none; background: #222; display: flex; align-items: center; justify-content: center; 
+            animation: scaleIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .preview-item .remove-file { 
+            position: absolute; top: -5px; right: -5px; background: #ff4444; color: white; 
+            border-radius: 50%; width: 15px; height: 15px; font-size: 9px; 
+            display: flex; align-items: center; justify-content: center; cursor: pointer; 
+            transition: transform 0.2s;
+        }
+        .preview-item .remove-file:hover { transform: scale(1.1); }
+
+        .dot-pulse { display: flex; gap: 4px; height: 24px; align-items: center; }
+        .dot { 
+            width: 6px; height: 6px; background: #555; border-radius: 50%; 
+            animation: smoothPulse 1.4s infinite ease-in-out; 
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes smoothPulse { 
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 
+            40% { transform: scale(1); opacity: 1; } 
+        }
+        @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <div id="html-runner">
+        <div class="close-viewer-btn" onclick="closeRunner()"><svg class="w-6 h-6" fill="none" stroke="#000" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <iframe id="sandbox-frame" class="w-full h-full border-none" sandbox="allow-scripts"></iframe>
+    </div>
+
+    <div id="welcome-container" class="flex-1 flex flex-col items-center justify-center">
+        <h1 class="text-4xl font-bold text-gray-800 tracking-tighter">hosted by varco</h1>
+    </div>
+
+    <main id="chat-container" class="flex-1 overflow-y-auto hidden">
+        <div id="message-list" class="max-w-3xl mx-auto p-4 md:p-8 space-y-6"></div>
+    </main>
+
+    <footer class="p-4 bg-transparent">
+        <div class="max-w-3xl mx-auto">
+            <div class="prompt-container">
+                <div id="file-previews" class="flex gap-2 mb-2"></div>
+                <div id="input-pill" class="input-pill mb-3">
+                    <div id="user-input" contenteditable="true" role="textbox"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <button id="file-btn" class="btn-anim w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 text-gray-300 rounded-full">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <input type="file" id="file-input" class="hidden" multiple>
+                        <button id="clear-btn" class="btn-anim w-9 h-9 flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-full" title="Clear Chat">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <button id="chat-selector" class="btn-anim flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-gray-400">
+                                <span id="current-chat-name">Chat 1</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                            <div id="chat-list" class="dropdown-menu">
+                                <!-- System Instruction Section -->
+                                <div class="p-3 border-b border-white/5 bg-[#141414]">
+                                    <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">System Instructions</div>
+                                    <textarea id="system-input" class="w-full bg-white/5 text-gray-300 text-[11px] rounded p-2 outline-none resize-none h-16 placeholder-gray-600 focus:bg-white/10 transition-colors" placeholder="e.g. You are a coding expert. Answer concisely."></textarea>
+                                </div>
+                                <div class="p-2 text-[10px] text-gray-500 font-bold uppercase flex justify-between items-center bg-[#1a1a1a]">
+                                    <span class="tracking-widest">Chats</span>
+                                    <button id="add-chat-btn" class="text-white hover:text-green-400 text-sm transition-colors">+</button>
+                                </div>
+                                <div id="chat-slots-container"></div>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <button id="model-selector" class="btn-anim flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-gray-400">
+                                <span id="current-model-name">gemma-3-27b-it</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                            <div id="model-list" class="dropdown-menu">
+                                <button id="edit-toggle" class="w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 text-white transition">
+                                    text editing disallowed
+                                </button>
+                                <div class="p-2 text-[10px] text-gray-500 font-bold uppercase">Gemma 3 Families</div>
+                                <button class="m-opt w-full text-left px-4 py-2 text-sm hover:bg-white/5" data-val="gemma-3-27b-it">gemma-3-27b-it</button>
+                                <button class="m-opt w-full text-left px-4 py-2 text-sm hover:bg-white/5" data-val="gemma-3-12b-it">gemma-3-12b-it</button>
+                                <button class="m-opt w-full text-left px-4 py-2 text-sm hover:bg-white/5" data-val="gemma-3-4b-it">gemma-3-4b-it</button>
+                                <button class="m-opt w-full text-left px-4 py-2 text-sm hover:bg-white/5" data-val="gemma-3-1b-it">gemma-3-1b-it</button>
+                                <button class="m-opt w-full text-left px-4 py-2 text-sm hover:bg-white/5" data-val="gemma-3n-e4b-it">gemma-3n-e4b-it</button>
+                                <button class="m-opt w-full text-left px-4 py-2 text-sm hover:bg-white/5" data-val="gemma-3n-e2b-it">gemma-3n-e2b-it</button>
+                            </div>
+                        </div>
+                        <button id="send-btn" class="btn-anim bg-white text-black w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors">
+                            <svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const API_KEY = "AIzaSyC4_nvTHNZdHkZUL56wIJGlEMrMAaXXS9Y";
+        let currentModel = 'gemma-3-27b-it', editingEnabled = false, attachedFiles = [];
+        let abortController = null, isGenerating = false, userScrolledUp = false;
+        
+        let activeSlotIndex = 0;
+        let chatSlots = JSON.parse(localStorage.getItem('varco_chats_v_final')) || [{
+            id: Date.now(), title: `Chat 1`, history: [], systemInstruction: ""
+        }];
+
+        const container = document.getElementById('chat-container'), 
+              messageList = document.getElementById('message-list'),
+              userInput = document.getElementById('user-input'), 
+              inputPill = document.getElementById('input-pill'),
+              systemInput = document.getElementById('system-input');
+
+        marked.setOptions({ highlight: (code) => hljs.highlightAuto(code).value, breaks: true });
+
+        container.onscroll = () => {
+            const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+            userScrolledUp = !isAtBottom;
+        };
+
+        systemInput.addEventListener('input', (e) => {
+            chatSlots[activeSlotIndex].systemInstruction = e.target.value;
+            saveToLocal();
+        });
+
+        function renderChatSlots() {
+            const slotsContainer = document.getElementById('chat-slots-container');
+            slotsContainer.innerHTML = '';
+            chatSlots.forEach((slot, index) => {
+                const opt = document.createElement('div');
+                opt.className = `chat-opt ${index === activeSlotIndex ? 'active' : ''}`;
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'chat-title-editable';
+                titleSpan.contentEditable = "true";
+                titleSpan.innerText = slot.title;
+                
+                opt.onclick = (e) => {
+                    if (e.target.closest('.delete-chat-circle')) return;
+                    if (index !== activeSlotIndex) switchChat(index);
+                };
+
+                titleSpan.onblur = () => {
+                    const newTitle = titleSpan.innerText.trim() || `Chat ${index + 1}`;
+                    chatSlots[index].title = newTitle;
+                    titleSpan.innerText = newTitle;
+                    if (index === activeSlotIndex) document.getElementById('current-chat-name').innerText = newTitle;
+                    saveToLocal();
+                };
+
+                titleSpan.onkeydown = (e) => { if(e.key === 'Enter') { e.preventDefault(); titleSpan.blur(); } };
+
+                const delBtn = document.createElement('div');
+                delBtn.className = 'delete-chat-circle';
+                delBtn.innerHTML = '✕';
+                delBtn.onclick = (e) => { e.stopPropagation(); deleteChat(index); };
+
+                opt.appendChild(titleSpan);
+                opt.appendChild(delBtn);
+                slotsContainer.appendChild(opt);
+            });
+            document.getElementById('current-chat-name').innerText = chatSlots[activeSlotIndex].title;
+            saveToLocal();
+        }
+
+        function addChat() {
+            chatSlots.push({ id: Date.now(), title: `Chat ${chatSlots.length + 1}`, history: [], systemInstruction: "" });
+            switchChat(chatSlots.length - 1);
+        }
+
+        function switchChat(index) {
+            if(isGenerating) return;
+            activeSlotIndex = index;
+            messageList.innerHTML = '';
+            
+            systemInput.value = chatSlots[activeSlotIndex].systemInstruction || "";
+
+            const history = chatSlots[activeSlotIndex].history;
+            if (history.length > 0) {
+                document.getElementById('welcome-container').style.display = 'none';
+                container.classList.remove('hidden');
+                history.forEach((msg, idx) => {
+                    const role = msg.role === 'user' ? 'user' : 'bot';
+                    const bubble = appendMessage(role, msg.parts[0].text, [], idx, true);
+                    if (role === 'bot') {
+                        bubble.innerHTML = marked.parse(msg.parts[0].text);
+                        injectActionButtons(bubble);
+                        bubble.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+                    }
+                });
+                container.scrollTop = container.scrollHeight;
+                userScrolledUp = false;
+            } else {
+                document.getElementById('welcome-container').style.display = 'flex';
+                container.classList.add('hidden');
+            }
+            renderChatSlots();
+            document.getElementById('chat-list').classList.remove('show');
+        }
+
+        function deleteChat(index) {
+            if (chatSlots.length === 1) { 
+                chatSlots[0] = { id: Date.now(), title: "Chat 1", history: [], systemInstruction: "" };
+                switchChat(0); 
+                return; 
+            }
+            chatSlots.splice(index, 1);
+            activeSlotIndex = Math.min(activeSlotIndex, chatSlots.length - 1);
+            switchChat(activeSlotIndex);
+        }
+
+        function deleteMessage(historyIndex) {
+            chatSlots[activeSlotIndex].history.splice(historyIndex, 1);
+            saveToLocal();
+            switchChat(activeSlotIndex);
+        }
+
+        function saveToLocal() { localStorage.setItem('varco_chats_v_final', JSON.stringify(chatSlots)); }
+
+        document.getElementById('edit-toggle').onclick = (e) => {
+            e.stopPropagation();
+            editingEnabled = !editingEnabled;
+            e.target.innerText = editingEnabled ? "text editing allowed" : "text editing disallowed";
+            document.querySelectorAll('[data-is-message="true"]').forEach(el => { el.contentEditable = editingEnabled; });
+        };
+
+        function copyCode(btn) {
+            const code = btn.closest('pre').querySelector('code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = btn.innerText;
+                btn.innerText = 'Copied';
+                setTimeout(() => btn.innerText = originalText, 2000);
+            });
+        }
+
+        function runCode(btn) {
+            const code = btn.closest('pre').querySelector('code').innerText;
+            document.getElementById('html-runner').classList.add('active');
+            const blob = new Blob([code], { type: 'text/html' });
+            document.getElementById('sandbox-frame').src = URL.createObjectURL(blob);
+        }
+        function closeRunner() { 
+            document.getElementById('html-runner').classList.remove('active'); 
+            setTimeout(() => document.getElementById('sandbox-frame').src = '', 300);
+        }
+        function downloadCode(btn) {
+            const code = btn.closest('pre').querySelector('code').innerText;
+            const blob = new Blob([code], { type: 'text/plain' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'file.txt'; a.click();
+        }
+
+        function injectActionButtons(parent) {
+            parent.querySelectorAll('pre').forEach(pre => {
+                if (pre.querySelector('.code-actions')) return;
+                const actions = document.createElement('div');
+                actions.className = 'code-actions';
+                
+                const c = document.createElement('button'); c.className='action-btn'; c.innerText='Copy'; c.onclick=()=>copyCode(c); actions.appendChild(c);
+
+                if (pre.querySelector('code.language-html')) {
+                    const r = document.createElement('button'); r.className='action-btn'; r.innerText='Run'; r.onclick=()=>runCode(r); actions.appendChild(r);
+                }
+                const d = document.createElement('button'); d.className='action-btn'; d.innerText='Download'; d.onclick=()=>downloadCode(d); actions.appendChild(d);
+                pre.prepend(actions);
+            });
+        }
+
+        function setButtonState(generating) {
+            isGenerating = generating;
+            const icon = document.getElementById('send-icon');
+            if (generating) {
+                icon.innerHTML = '<rect x="6" y="6" width="12" height="12" fill="currentColor" rx="2" />';
+            } else {
+                icon.innerHTML = '<path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>';
+            }
+        }
+
+        async function sendMessage() {
+            if (isGenerating) {
+                if (abortController) abortController.abort();
+                return;
+            }
+
+            const text = userInput.innerText.trim();
+            if (!text && !attachedFiles.length) return;
+            if (chatSlots[activeSlotIndex].history.length === 0) {
+                document.getElementById('welcome-container').style.display = 'none';
+                container.classList.remove('hidden');
+            }
+
+            const userParts = [{ text: text || "Analyze attachment(s)" }];
+            attachedFiles.forEach(f => {
+                if (f.data.mimeType) userParts.push({ inlineData: { mimeType: f.data.mimeType, data: f.data.data } });
+                else if (f.data.text) userParts[0].text += f.data.text;
+            });
+
+            appendMessage('user', text, attachedFiles.map(f => f.name), chatSlots[activeSlotIndex].history.length);
+            chatSlots[activeSlotIndex].history.push({ role: 'user', parts: userParts });
+            userInput.innerText = ''; document.getElementById('file-previews').innerHTML = ''; attachedFiles = [];
+
+            const botBubble = appendMessage('bot', '', [], chatSlots[activeSlotIndex].history.length);
+            botBubble.innerHTML = `<div class="dot-pulse"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+            const contentArea = document.createElement('div');
+            contentArea.className = 'prose prose-invert max-w-none hidden';
+            contentArea.dataset.isMessage = "true";
+            botBubble.appendChild(contentArea);
+
+            let streamedFullText = ""; 
+            let displayedText = "";    
+            let incomingBuffer = "";   
+            let streamInterval = null;
+            let isDone = false;
+
+            abortController = new AbortController();
+            setButtonState(true);
+            userScrolledUp = false;
+
+            const startSmoothTyping = () => {
+                if (streamInterval) return;
+                streamInterval = setInterval(() => {
+                    if (incomingBuffer.length > 0) {
+                        const chunkSize = Math.max(1, Math.floor(incomingBuffer.length / 8)); 
+                        const chunk = incomingBuffer.slice(0, chunkSize);
+                        incomingBuffer = incomingBuffer.slice(chunkSize);
+                        displayedText += chunk;
+                        
+                        contentArea.innerHTML = marked.parse(displayedText);
+                        injectActionButtons(contentArea);
+                        contentArea.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+                        
+                        if (!userScrolledUp) container.scrollTop = container.scrollHeight;
+                        
+                    } else if (isDone) {
+                        clearInterval(streamInterval);
+                        chatSlots[activeSlotIndex].history.push({ role: 'model', parts: [{ text: streamedFullText }] });
+                        contentArea.contentEditable = editingEnabled;
+                        saveToLocal();
+                        setButtonState(false);
+                    }
+                }, 16); 
+            };
+
+            try {
+                // Creates a fresh copy of the history for the API call
+                let apiHistory = JSON.parse(JSON.stringify(chatSlots[activeSlotIndex].history));
+                const sys = chatSlots[activeSlotIndex].systemInstruction;
+                
+                // --- FIX: Embed System Instruction into the First Message ---
+                if (sys && sys.trim()) {
+                    if (apiHistory.length > 0 && apiHistory[0].role === 'user') {
+                        const firstPart = apiHistory[0].parts[0];
+                        // Prepend system prompt to the first user message
+                        // This guarantees the model sees it regardless of API field support
+                        if (typeof firstPart === 'string') {
+                            apiHistory[0].parts[0] = `System Instruction: ${sys}\n\n${firstPart}`;
+                        } else {
+                            firstPart.text = `System Instruction: ${sys}\n\n${firstPart.text}`;
+                        }
+                    }
+                }
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:streamGenerateContent?key=${API_KEY}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: apiHistory }),
+                    signal: abortController.signal
+                });
+
+                const reader = response.body.getReader(), decoder = new TextDecoder();
+                let buffer = "";
+                
+                startSmoothTyping(); 
+
+                while (true) {
+                    const { value, done } = await reader.read(); 
+                    if (done) { isDone = true; break; }
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    let start = buffer.indexOf('{');
+                    while (start !== -1) {
+                        let end = -1, count = 0;
+                        for (let i = start; i < buffer.length; i++) {
+                            if (buffer[i] === '{') count++; else if (buffer[i] === '}') count--;
+                            if (count === 0) { end = i; break; }
+                        }
+                        if (end !== -1) {
+                            try {
+                                const json = JSON.parse(buffer.substring(start, end + 1));
+                                const delta = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                                if (delta) {
+                                    if (botBubble.querySelector('.dot-pulse')) botBubble.querySelector('.dot-pulse').remove();
+                                    contentArea.classList.remove('hidden'); 
+                                    streamedFullText += delta;
+                                    incomingBuffer += delta; 
+                                }
+                            } catch (e) {}
+                            buffer = buffer.substring(end + 1); start = buffer.indexOf('{');
+                        } else break;
+                    }
+                }
+            } catch (e) { 
+                if (e.name === 'AbortError') {
+                    isDone = true; 
+                } else {
+                    botBubble.innerHTML = `<span class="text-red-500">Error: ${e.message}</span>`; 
+                    clearInterval(streamInterval);
+                    setButtonState(false);
+                }
+            }
+        }
+
+        function appendMessage(role, text, files = [], historyIndex, isLoad = false) {
+            const wrap = document.createElement('div');
+            wrap.className = `msg-wrap flex flex-col ${role === 'user' ? 'items-end' : 'items-start'} ${!isLoad ? 'msg-enter' : ''}`;
+            
+            if (files.length) {
+                const grid = document.createElement('div'); grid.className = 'flex flex-wrap gap-2 mb-1';
+                files.forEach(n => grid.innerHTML += `<div class="file-card"><span class="file-card-ext">${n.split('.').pop()}</span><span class="file-card-name">${n}</span></div>`);
+                wrap.appendChild(grid);
+            }
+
+            const bubble = document.createElement('div');
+            bubble.className = role === 'user' ? 'user-msg-bubble max-w-[85%]' : 'bot-msg-area';
+            
+            const targetEl = role === 'user' ? bubble : document.createElement('div');
+            if (role === 'bot') { targetEl.className = 'prose prose-invert max-w-none'; bubble.appendChild(targetEl); }
+            
+            targetEl.dataset.isMessage = "true";
+            targetEl.dataset.index = historyIndex;
+            targetEl.contentEditable = editingEnabled;
+            if (role === 'user') targetEl.textContent = text;
+            
+            targetEl.addEventListener('input', () => {
+                const idx = parseInt(targetEl.dataset.index);
+                if (chatSlots[activeSlotIndex].history[idx]) {
+                    chatSlots[activeSlotIndex].history[idx].parts[0].text = targetEl.innerText;
+                    saveToLocal();
+                }
+            });
+
+            wrap.appendChild(bubble);
+
+            const deleteMsgBtn = document.createElement('div');
+            deleteMsgBtn.className = 'delete-msg-btn text-[10px] uppercase font-bold tracking-widest';
+            deleteMsgBtn.innerText = 'delete message';
+            deleteMsgBtn.onclick = () => deleteMessage(historyIndex);
+            wrap.appendChild(deleteMsgBtn);
+
+            messageList.appendChild(wrap);
+            if (!isLoad) container.scrollTop = container.scrollHeight;
+            return targetEl;
+        }
+
+        inputPill.addEventListener('drop', (e) => {
+            e.preventDefault(); inputPill.classList.remove('drag-over');
+            Array.from(e.dataTransfer.files).forEach(async f => {
+                const ext = f.name.split('.').pop().toUpperCase();
+                if (f.type.startsWith('image/')) {
+                    const r = new FileReader(); r.onload = (re) => addPreview(f.name, ext, { mimeType: f.type, data: re.target.result.split(',')[1] }); r.readAsDataURL(f);
+                } else {
+                    const t = await f.text(); addPreview(f.name, ext, { text: `\n[File: ${f.name}]\n${t}` });
+                }
+            });
+        });
+        inputPill.addEventListener('dragover', (e) => { e.preventDefault(); inputPill.classList.add('drag-over'); });
+        inputPill.addEventListener('dragleave', () => inputPill.classList.remove('drag-over'));
+        document.getElementById('file-btn').onclick = () => document.getElementById('file-input').click();
+        document.getElementById('file-input').onchange = (e) => {
+            Array.from(e.target.files).forEach(async f => {
+                const ext = f.name.split('.').pop().toUpperCase();
+                if (f.type.startsWith('image/')) {
+                    const r = new FileReader(); r.onload = (re) => addPreview(f.name, ext, { mimeType: f.type, data: re.target.result.split(',')[1] }); r.readAsDataURL(f);
+                } else {
+                    const t = await f.text(); addPreview(f.name, ext, { text: `\n[File: ${f.name}]\n${t}` });
+                }
+            });
+        };
+
+        function addPreview(name, ext, data) {
+            attachedFiles.push({ name, data });
+            const div = document.createElement('div'); div.className = 'preview-item';
+            div.innerHTML = `<span class="text-[9px] font-bold text-gray-500">${ext}</span><div class="remove-file" onclick="removeFile('${name}', this)">✕</div>`;
+            document.getElementById('file-previews').appendChild(div);
+        }
+
+        function removeFile(name, btn) { attachedFiles = attachedFiles.filter(f => f.name !== name); btn.parentElement.remove(); }
+
+        document.getElementById('add-chat-btn').onclick = (e) => { e.stopPropagation(); addChat(); };
+        document.getElementById('chat-selector').onclick = (e) => { e.stopPropagation(); document.getElementById('chat-list').classList.toggle('show'); document.getElementById('model-list').classList.remove('show'); };
+        document.getElementById('model-selector').onclick = (e) => { e.stopPropagation(); document.getElementById('model-list').classList.toggle('show'); document.getElementById('chat-list').classList.remove('show'); };
+        
+        document.getElementById('chat-list').onclick = (e) => e.stopPropagation();
+        document.getElementById('model-list').onclick = (e) => e.stopPropagation();
+
+        document.querySelectorAll('.m-opt').forEach(opt => opt.onclick = () => { currentModel = opt.dataset.val; document.getElementById('current-model-name').innerText = currentModel; });
+        document.onclick = () => { document.getElementById('model-list').classList.remove('show'); document.getElementById('chat-list').classList.remove('show'); };
+        document.getElementById('send-btn').onclick = sendMessage;
+        userInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
+        document.getElementById('clear-btn').onclick = () => deleteChat(activeSlotIndex);
+
+        renderChatSlots();
+        switchChat(activeSlotIndex);
+    </script>
+</body>
+</html>

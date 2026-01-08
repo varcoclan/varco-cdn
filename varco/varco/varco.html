@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>New Tab</title>
+<style>
+html, body {
+margin: 0;
+padding: 0;
+height: 100%;
+overflow: hidden;
+}
+iframe {
+width: 100%;
+height: 100%;
+border: none;
+display: block;
+}
+</style>
+</head>
+<body>
+<iframe id="mainFrame"></iframe>
+<script>
+const urlMap = {
+1: "https://freefy.app",
+2: "https://vapor.my/",
+3: "https://eaglercraft.com",
+4: "https://pixelforces.io",
+5: "https://anura.pro",
+6: "https://easyfun.gg",
+7: "https://work.excel.albacetediario.com/"
+};
+
+const numberInput = prompt("ENTER A NUM 1-9");
+let targetURL = "";
+
+const parsed = parseInt(numberInput);
+if (parsed >= 1 && parsed <= 7) {
+targetURL = urlMap[parsed];
+} else if (parsed === 8) {
+const searchTerm = prompt("ENTER YOUR SEARCH TERM", "games");
+if (!searchTerm) {
+alert("No search term entered. Closing.");
+window.close();
+} else {
+targetURL = "https://4get.ch/web?s=" + encodeURIComponent(searchTerm);
+}
+} else if (parsed === 9) {
+const customDomain = prompt("ENTER A DOMAIN", "slowroads.io");
+if (!customDomain) {
+alert("No domain entered. Closing.");
+window.close();
+} else {
+targetURL = "https://" + customDomain;
+}
+} else {
+alert("Invalid number. Closing.");
+window.close();
+}
+
+const iframe = document.getElementById("mainFrame");
+iframe.src = targetURL;
+
+iframe.onload = () => {
+try {
+const iframeWin = iframe.contentWindow;
+
+iframeWin.open = function (url) {
+iframe.src = url;
+return iframeWin;
+};
+
+setInterval(() => {
+try {
+const currentURL = iframeWin.location.href;
+if (iframe.src !== currentURL) {
+iframe.src = currentURL;
+}
+} catch (e) {}
+}, 1000);
+
+} catch (e) {
+console.warn("Iframe content blocked (cross-origin). Cannot override window.open.");
+}
+};
+<\/script>
+</body>
+</html>
